@@ -1,0 +1,116 @@
+name: Auto Label Issues
+
+on:
+  issues:
+    types: [opened, edited]
+  pull_request:
+    types: [opened, edited]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label based on title and body
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const isIssue = !!context.payload.issue;
+            const item = context.payload.issue || context.payload.pull_request;
+            const title = (item.title || '').toLowerCase();
+            const body = (item.body || '').toLowerCase();
+            const text = title + ' ' + body;
+            const labelsToAdd = [];
+
+            // Bug detection
+            if (title.includes('[bug]') || text.includes('bug') || text.includes('error') ||
+                text.includes('broken') || text.includes('crash') || text.includes('not working') ||
+                text.includes('fails') || text.includes('fix')) {
+              labelsToAdd.push('bug');
+            }
+
+            // Feature request detection
+            if (title.includes('[feature]') || text.includes('feature') || text.includes('enhancement') ||
+                text.includes('add support') || text.includes('would be nice') ||
+                text.includes('request') || text.includes('improve') || text.includes('suggestion')) {
+              labelsToAdd.push('enhancement');
+            }
+
+            // Question detection
+            if (text.includes('how to') || text.includes('how do') || text.includes('question') ||
+                text.includes('help') || text.includes('why') || text.includes('what is') ||
+                text.includes('is it possible') || title.includes('?')) {
+              labelsToAdd.push('question');
+            }
+
+            // Documentation detection
+            if (text.includes('docs') || text.includes('documentation') || text.includes('readme') ||
+                text.includes('contributing') || text.includes('guide') || text.includes('tutorial')) {
+              labelsToAdd.push('documentation');
+            }
+
+            // UI detection
+            if (text.includes('ui') || text.includes('design') || text.includes('layout') ||
+                text.includes('style') || text.includes('css') || text.includes('responsive') ||
+                text.includes('mobile') || text.includes('visual')) {
+              labelsToAdd.push('ui');
+            }
+
+            // Web3 / Blockchain detection
+            if (text.includes('web3') || text.includes('blockchain') || text.includes('nft') ||
+                text.includes('onchain') || text.includes('wallet') || text.includes('token') ||
+                text.includes('smart contract') || text.includes('defi') || text.includes('crypto')) {
+              labelsToAdd.push('web3');
+            }
+
+            // Japanese culture detection
+            if (text.includes('japanese') || text.includes('japan') || text.includes('sakura') ||
+                text.includes('anime') || text.includes('manga') || text.includes('culture') ||
+                text.includes('kanji') || text.includes('samurai') || text.includes('kimono')) {
+              labelsToAdd.push('japanese-culture');
+            }
+
+            // Performance detection
+            if (text.includes('performance') || text.includes('slow') || text.includes('speed') ||
+                text.includes('optimize') || text.includes('loading') || text.includes('fast')) {
+              labelsToAdd.push('performance');
+            }
+
+            // Help wanted detection
+            if (text.includes('help wanted') || text.includes('looking for help') ||
+                text.includes('contribution welcome') || text.includes('open to help')) {
+              labelsToAdd.push('help wanted');
+            }
+
+            // Good first issue detection
+            if (text.includes('good first issue') || text.includes('beginner') ||
+                text.includes('starter') || text.includes('easy') || text.includes('simple fix')) {
+              labelsToAdd.push('good first issue');
+            }
+
+            // Apply labels if any matched
+            if (labelsToAdd.length > 0) {
+              const uniqueLabels = [...new Set(labelsToAdd)];
+              if (isIssue) {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: item.number,
+                  labels: uniqueLabels
+                });
+                console.log('Labels added to issue #' + item.number + ':', uniqueLabels.join(', '));
+              } else {
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: item.number,
+                  labels: uniqueLabels
+                });
+                console.log('Labels added to PR #' + item.number + ':', uniqueLabels.join(', '));
+              }
+            } else {
+              console.log('No matching labels found for this issue/PR.');
+            }
