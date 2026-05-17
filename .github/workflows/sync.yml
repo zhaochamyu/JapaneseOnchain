@@ -1,0 +1,41 @@
+name: Sync from Netlify
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Fetch latest site files from Netlify
+        run: |
+          curl -sL http://japaneseonchain.xyz/ -o index.html
+          JS_FILE=$(grep -oP '(?<=src="/assets/)[^"]+' index.html || true)
+          CSS_FILE=$(grep -oP '(?<=href="/assets/)[^"]+' index.html || true)
+          mkdir -p assets
+          if [ -n "$JS_FILE" ]; then
+            curl -sL "http://japaneseonchain.xyz/assets/$JS_FILE" -o "assets/$JS_FILE"
+            echo "Downloaded JS: $JS_FILE"
+          fi
+          if [ -n "$CSS_FILE" ]; then
+            curl -sL "http://japaneseonchain.xyz/assets/$CSS_FILE" -o "assets/$CSS_FILE"
+            echo "Downloaded CSS: $CSS_FILE"
+          fi
+          curl -sL http://japaneseonchain.xyz/favicon.svg -o favicon.svg || true
+
+      - name: Commit and push if changed
+        run: |
+          git config user.name "GitHub Actions Bot"
+          git config user.email "actions@github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "No changes detected, skipping commit"
+          else
+            git commit -m "Auto-sync: update from japaneseonchain.xyz $(date -u '+%Y-%m-%d %H:%M UTC')"
+            git push
+          fi
