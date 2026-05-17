@@ -1,0 +1,103 @@
+name: Welcome First-Time Contributors
+
+on:
+  issues:
+    types: [opened]
+  pull_request_target:
+    types: [opened]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  welcome:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Welcome first-time issue opener
+        if: github.event_name == 'issues'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const creator = context.payload.issue.user.login;
+            const issueNumber = context.payload.issue.number;
+
+            const { data: issues } = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              creator,
+              state: 'all',
+            });
+
+            const isFirstIssue = issues.filter(i => !i.pull_request).length === 1;
+
+            if (isFirstIssue) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issueNumber,
+                body: `## 🌸 Welcome to JapaneseOnChain, @${creator}!
+
+Thank you for opening your first issue — we're really glad you're here! 🎉
+
+**What happens next:**
+- 👀 A maintainer will review your issue soon
+- 🏷️ Labels will be added automatically to categorize it
+- 💬 Feel free to add more details or screenshots if helpful
+
+**While you wait, feel free to:**
+- 🌐 Visit the live site: [japaneseonchain.xyz](http://japaneseonchain.xyz)
+- 💬 Join our [Community Discussions](https://github.com/zhaochamyu/JapaneseOnchain/discussions)
+- ⭐ Star the repo if you haven't already!
+- 📖 Read our [Contributing Guide](https://github.com/zhaochamyu/JapaneseOnchain/blob/main/CONTRIBUTING.md)
+
+*「ようこそ」— Welcome to the community!* 🌸⛓️`
+              });
+              console.log('Welcome comment posted for first-time issue opener:', creator);
+            }
+
+      - name: Welcome first-time PR opener
+        if: github.event_name == 'pull_request_target'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const creator = context.payload.pull_request.user.login;
+            const prNumber = context.payload.pull_request.number;
+
+            const { data: prs } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'all',
+            });
+
+            const userPRs = prs.filter(pr => pr.user.login === creator);
+            const isFirstPR = userPRs.length === 1;
+
+            if (isFirstPR) {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: prNumber,
+                body: `## 🌸 Amazing — Your First Contribution to JapaneseOnChain! 🎉
+
+Thank you so much, @${creator}! Opening your first pull request is a big deal, and we truly appreciate your effort. 🙏
+
+**What happens next:**
+- 👀 A maintainer will review your PR shortly
+- 💬 We may leave feedback or request small changes — that's totally normal!
+- ✅ Once approved, your code will be merged and you'll officially be a JapaneseOnChain contributor!
+
+**Quick checklist before review:**
+- [ ] Does your code work as expected?
+- [ ] Did you test in multiple browsers?
+- [ ] Is the PR description clear and complete?
+- [ ] Did you link any related issues?
+
+**Connect with the community:**
+- 💬 [Discussions Board](https://github.com/zhaochamyu/JapaneseOnchain/discussions)
+- 🌐 [Live Site](http://japaneseonchain.xyz)
+
+*「ありがとうございます」— Thank you so much!* 🌸⛓️`
+              });
+              console.log('Welcome comment posted for first-time PR opener:', creator);
+            }
